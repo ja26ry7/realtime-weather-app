@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useMemo } from "react";
 import styled from "@emotion/styled";
 import { ThemeProvider } from "emotion-theming";
+import dayjs from "dayjs";
 import WeatherCard from "./WeatherCard";
 import useWeatherApi from "./useWeatherApi";
 import sunriseAndSunsetData from "./sunrise-sunset.json";
 import WeatherSetting from "./WeatherSetting";
 import { findLocation } from "./utils";
+
 const theme = {
   light: {
     backgroundColor: "#ededed",
-    foregroundColor: "#f5f5f5",
+    foregroundColor: "#f9f9f9",
     boxShadow: "0 1px 3px 0 #999999",
     titleColor: "#212121",
     temperatureColor: "#757575",
@@ -41,7 +43,7 @@ const getMoment = (locationName) => {
 
   if (!location) return null;
 
-  const now = new Date();
+  const now = dayjs();
   const nowDate = Intl.DateTimeFormat("zh-TW", {
     year: "numeric",
     month: "2-digit",
@@ -52,13 +54,15 @@ const getMoment = (locationName) => {
 
   const locationDate =
     location.time && location.time.find((time) => time.dataTime === nowDate);
-  const sunriseTimestamp = new Date(
+  console.log("123", location, locationDate);
+  const sunriseTimestamp = dayjs(
     `${locationDate.dataTime} ${locationDate.sunrise}`
-  ).getTime();
-  const sunsetTimestamp = new Date(
+  ).unix();
+  const sunsetTimestamp = dayjs(
     `${locationDate.dataTime} ${locationDate.sunset}`
-  ).getTime();
-  const nowTimeStamp = now.getTime();
+  ).unix();
+
+  const nowTimeStamp = now.unix();
 
   return sunriseTimestamp <= nowTimeStamp && nowTimeStamp <= sunsetTimestamp
     ? "day"
@@ -66,16 +70,20 @@ const getMoment = (locationName) => {
 };
 
 const WeatherApp = () => {
+  // console.log('--- invoke function component ---');
   const storageCity = localStorage.getItem("cityName");
   const [currentCity, setCurrentCity] = useState(storageCity || "臺北市");
   const currentLocation = findLocation(currentCity) || {};
+
   const [weatherElement, fetchData] = useWeatherApi(currentLocation);
+
   const [currentTheme, setCurrentTheme] = useState("light");
   const [currentPage, setCurrentPage] = useState("WeatherCard");
 
-  const moment = useMemo(() => getMoment(currentLocation.sunriseCityName), [
-    currentLocation.sunriseCityName,
-  ]);
+  const moment = useMemo(
+    () => getMoment(currentLocation.sunriseCityName),
+    [currentLocation.sunriseCityName]
+  );
 
   useEffect(() => {
     setCurrentTheme(moment === "day" ? "light" : "dark");
@@ -83,7 +91,6 @@ const WeatherApp = () => {
 
   useEffect(() => {
     localStorage.setItem("cityName", currentCity);
-    // STEP 3-2：dependencies 中放入 currentCity
   }, [currentCity]);
 
   return (
